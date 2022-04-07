@@ -1,0 +1,64 @@
+overwrite: true
+schema:
+  - https://hydrogen-preview.myshopify.com/api/2022-04/graphql.json:
+      headers:
+        X-Shopify-Storefront-Access-Token: 3b580e70970c4528da70c98e097c2fa0
+        content-type: application/json
+documents:
+  [
+    'src/components/**/*.graphql',
+    'src/foundation/**/*.graphql',
+    'src/hooks/**/*.graphql',
+    'src/routes/**/*.tsx',
+    'src/**/*.tsx',
+  ]
+generates:
+  # the base types that are generated
+  src/graphql/storefront-api-types.ts:
+    plugins:
+      - add:
+          content:
+            - '/** '
+            - ' * THIS FILE IS AUTO-GENERATED, DO NOT EDIT'
+            - ' * Based on Storefront API 2022-04'
+            - ' * If changes need to happen to the types defined in this file, then generally the Storefront API needs to update, and then you can run `yarn generate`'
+            - ' * Except custom Scalars, which are defined in the `codegen.yml` file'
+            - ' */'
+      - typescript:
+          useTypeImports: true
+          # If a default type for a scalar isn't set, then instead of 'any' let's set to 'unknown' for better type safety.
+          defaultScalarType: unknown
+          useImplementingTypes: true
+          # Define how the SFAPI's custom scalars map to TS types
+          scalars:
+            DateTime: string
+            Decimal: string
+            HTML: string
+            Money: string
+            URL: string
+  # generates the files next to where they're used
+  src/graphql/generated.ts:
+    config:
+      documentMode: string
+    presetConfig:
+      # is the same as the base type file path above
+      baseTypesPath: graphql/storefront-api-types.ts
+      # perhaps think about changing the extension in the future?
+      extension: .ts
+    plugins:
+      - add:
+          content:
+            - '/** '
+            - ' * THIS FILE IS AUTO-GENERATED, DO NOT EDIT.'
+            - ' * Instead, you can edit the associated .graphql file to query for additional fields and this file will be updated when you run `yarn generate`'
+            - ' */'
+            # Because these are generated files, we don't want TS to fail on TS-related issues in these files. For example, sometimes a file is imported but not used in these files
+            - '// @ts-nocheck'
+      - 'typescript-operations':
+          # in order for our custom scalar TS types to be picked up in the local files, we have to set this to false for the time being. See https://github.com/dotansimha/graphql-code-generator/issues/6914
+          preResolveTypes: false
+  # the schema file, which is the local representation of the graphql endpoint
+  ./graphql.schema.json:
+    plugins:
+      - 'introspection':
+          minify: true
